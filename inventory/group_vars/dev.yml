@@ -1,0 +1,4 @@
+main_node: theoden
+kubeapiaddress: https://192.168.86.100:16443
+vault_host: faramir
+vault_address: https://192.168.86.97:8200

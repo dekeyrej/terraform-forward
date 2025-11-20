@@ -1,0 +1,72 @@
+---
+- name: Wait for Container to become reachable
+  hosts: all
+  tags: fellowship:install
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH to come up
+      ansible.builtin.wait_for_connection:
+        timeout: 300  # Adjust as needed
+        delay: 0     # Initial delay before polling
+        sleep: 5      # Time between retries
+
+- name: Prepare nodes - Part 1 (create microceph cluster and install microk8s)
+  hosts: kubernetes
+  tags: fellowship:install
+  become: yes
+  vars_files:
+    - ceph_disk_list.yaml
+  roles:
+    - role: certificate-authority-copy-to-host
+    - role: apt-add-packages
+      vars:
+        packages: [ qemu-guest-agent, python3-kubernetes, python3-pip, python3-venv ]
+    # - role: microceph-all                 # only if group_vars-all-ceph_enabled == true
+    - role: microk8s-install
+      vars:
+        new_ca: true       # check for new ca.crt, refresh certs _BEFORE_ making cluster!
+                           
+- name: Prepare nodes - Part 2 (create microk8s cluster)
+  hosts: nodes
+  tags: fellowship:assemble
+  serial: 1
+  become: yes
+  roles:
+    - role: microk8s-assemble-cluster
+
+- name: Prepare nodes - Part 3 (configure microk8s cluster)
+  hosts: kubernetes
+  tags: fellowship:configure
+  become: yes
+  roles:
+    - role: microk8s-configure   # add task to add IP SANs for kubeapi.local, 192.168.86.90 to the server.crt on each node!
+
+- name: Deploy cluster services (add-ons, pull kubeconfig, redis)
+  hosts: main
+  tags: fellowship:services
+  become: no
+  roles:
+    - role: microk8s-enable-addons       # affected by group_vars-all-ceph_enabled == true
+    - role: kubernetes-fetch-config
+    - role: kubernetes-redis-deploy      # affected by group_vars-all-ceph_enabled == true
+    - role: ghcr-secret-create
+    
+# - name: Configure vault support kubernetes authentication and transit secrets
+#   hosts: localhost
+#   tags: fellowship:kubevault
+#   become: no
+#   roles:
+#     - role: vault-configure-for-kubevault
+
+- name: Deploy application microservices, API and webdisplay
+  hosts: main
+  tags: fellowship:deploy
+  become: no
+  roles:
+    - role: kubernetes-encryptonator-build
+    - role: kubernetes-secrets-bootstrap
+    - role: kubernetes-manifests-sync
+    - role: kubernetes-microservices-deploy
+    # - role: kubernetes-mqtt-telegraf-influxdb-deploy
+    # - role: kubernetes-grafana-deploy
+    # - role: kubernetes-recryptonator-deploy

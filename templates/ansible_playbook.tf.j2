@@ -1,0 +1,40 @@
+# {{ name }} enters {{ tag }} — dependent on {{ dependencies | length }} prior incantations
+resource "ansible_playbook" "{{ playbook_name }}" {
+  # dependency info
+  depends_on = [
+  {%- for dep in dependencies %}
+    {{ dep }}{% if not loop.last %},{% endif %}
+  {%- endfor %}  
+  ]
+  # inventory info
+  name       = "{{ name }}"
+  groups     = {{ groups }}
+  # playbook info
+  playbook   = "${path.module}/{{ playbook_path }}"
+  {% if steps > 0 -%}
+  tags       = ["{{ tag }}"]
+  {% else %}
+  tags       = []
+  {%- endif %}
+  var_files  = [
+    "${path.module}/inventory/group_vars/all.yml",
+    "${path.module}/inventory/group_vars/{{ tranche }}.yml",
+    "${path.module}/inventory/host_vars/{{ name }}.yml"
+  ]
+  check_mode = false
+  diff_mode  = false
+  replayable = false
+  verbosity  = 1
+}
+
+output "ansible_{{ playbook_name }}-stdout" {
+  depends_on = [ ansible_playbook.{{ playbook_name }} ]
+  value = ansible_playbook.{{ playbook_name }}.ansible_playbook_stdout
+  description = "Standard output from the Ansible playbook execution."
+}
+
+output "ansible_{{ playbook_name }}-stderr" {
+  depends_on = [ ansible_playbook.{{ playbook_name }} ]
+  value = ansible_playbook.{{ playbook_name }}.ansible_playbook_stderr
+  description = "Standard error from the Ansible playbook execution."
+}

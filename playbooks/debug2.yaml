@@ -1,0 +1,31 @@
+---
+- name: Wait for Container to become reachable
+  hosts: all
+  tags: step1
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH to come up
+      ansible.builtin.wait_for_connection:
+        timeout: 300  # Adjust as needed
+        delay: 0     # Initial delay before polling
+        sleep: 5      # Time between retries
+
+- name: Vault install, configure, init, auto-unseal
+  hosts: vaults
+  tags: step1
+  gather_facts: true
+  tasks:
+    - name: step 1 - all in k8s
+      ansible.builtin.copy:
+        content:  "Install vault on {{ inventory_hostname }}@{{ static_ip }}\n"
+        dest: /home/ubuntu/step1
+
+- name: Configure for kubernetes authentication
+  hosts: vaults
+  tags: step2
+  gather_facts: true
+  tasks:
+    - name: step 2 - all in nodes
+      ansible.builtin.copy:
+        content:  "Configure vault on {{ inventory_hostname }}@{{ static_ip }} with kubernetes authentication\n"
+        dest: /home/ubuntu/step2

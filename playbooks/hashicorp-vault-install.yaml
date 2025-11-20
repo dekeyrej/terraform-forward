@@ -1,0 +1,55 @@
+---
+- name: Wait for Container to become reachable
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Wait for SSH to come up
+      ansible.builtin.wait_for_connection:
+        timeout: 300  # Adjust as needed
+        delay: 5     # Initial delay before polling
+        sleep: 5      # Time between retries
+
+# - name: dump hostvars
+#   hosts: all
+#   gather_facts: true
+#   tasks:
+#     - name: dump hostvars
+#       ansible.builtin.debug:
+#         var: hostvars[inventory_hostname]
+
+- name: Setup Vault
+  hosts: vaults
+  tags: vault:install
+  become: true
+  roles:
+    - role: certificate-authority-copy-to-host
+      vars:
+        ca_host: manwe
+    - role: apt-add-source-vault
+    - role: apt-update-all
+    - role: apt-add-packages
+      vars:
+        packages: [ vault, python3-kubernetes, python3-hvac ]
+    - role: kubernetes-kubectl-install        # new role added to the play
+    - role: certificate-authority-generate-certs
+      vars:
+        ca_host: manwe
+        server_key_path: /opt/vault/tls/vault.key
+        server_cert_path: /opt/vault/tls/vault.crt
+        owner: vault
+        group: vault
+        mode: '0600'
+    - role: vault-configure
+    - role: vault-initialize
+
+- name: Configure vault support kubernetes authentication and transit secrets
+  hosts: vaults
+  tags: vault:kubevault
+  become: no
+  roles:
+    - role: user-ubuntu-configure           
+    - role: kubernetes-fetch-config-nolocal
+      vars:
+        source_host: theoden
+        dest_host: faramir
+    - role: vault-configure-for-kubevault
