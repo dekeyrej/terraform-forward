@@ -68,11 +68,13 @@ output "ansible_theoden-kubernetes-3-of-5-stderr" {
   value = ansible_playbook.theoden-kubernetes-3-of-5.ansible_playbook_stderr
   description = "Standard error from the Ansible playbook execution."
 }
-# theoden enters fellowship:services — dependent on 1 prior incantations
+# theoden enters fellowship:services — dependent on 3 prior incantations
 resource "ansible_playbook" "theoden-kubernetes-4-of-5" {
   # dependency info
   depends_on = [
-    ansible_playbook.theoden-kubernetes-3-of-5  
+    ansible_playbook.theoden-kubernetes-3-of-5,
+    ansible_playbook.eomer-kubernetes-3-of-5,
+    ansible_playbook.eowyn-kubernetes-3-of-5  
   ]
   # inventory info
   name       = "theoden"

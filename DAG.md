@@ -43,7 +43,11 @@ graph TD;
     g1-->h2;
     i1-->i2[Control Plane 2 Join];
     h2-.->|Microk8s serial join constraint|i2;
-    i2-->g2[Cluster Configure];
+    i2-->h3[Control Plane 2 Configure];
+    i2-->i3[Control Plane 1 Configure];
+    i2-->g2[Control Plane 0 Configure];
+    h3-->g3;
+    i3-->g3;
     g2-->g3[Cluster Services];
     e2-->g4[Cluster Microservices];
     end
