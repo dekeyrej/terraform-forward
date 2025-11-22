@@ -211,6 +211,41 @@ output "ansible_eomer-kubernetes-2-of-5-stderr" {
   value = ansible_playbook.eomer-kubernetes-2-of-5.ansible_playbook_stderr
   description = "Standard error from the Ansible playbook execution."
 }
+# eomer enters fellowship:configure — dependent on 1 prior incantations
+resource "ansible_playbook" "eomer-kubernetes-3-of-5" {
+  # dependency info
+  depends_on = [
+    ansible_playbook.eowyn-kubernetes-2-of-5  
+  ]
+  # inventory info
+  name       = "eomer"
+  groups     = ["kubernetes", "nodes"]
+  # playbook info
+  playbook   = "${path.module}/playbooks/kubernetes_cluster.yaml"
+  tags       = ["fellowship:configure"]
+  
+  var_files  = [
+    "${path.module}/inventory/group_vars/all.yml",
+    "${path.module}/inventory/group_vars/dev.yml",
+    "${path.module}/inventory/host_vars/eomer.yml"
+  ]
+  check_mode = false
+  diff_mode  = false
+  replayable = false
+  verbosity  = 1
+}
+
+output "ansible_eomer-kubernetes-3-of-5-stdout" {
+  depends_on = [ ansible_playbook.eomer-kubernetes-3-of-5 ]
+  value = ansible_playbook.eomer-kubernetes-3-of-5.ansible_playbook_stdout
+  description = "Standard output from the Ansible playbook execution."
+}
+
+output "ansible_eomer-kubernetes-3-of-5-stderr" {
+  depends_on = [ ansible_playbook.eomer-kubernetes-3-of-5 ]
+  value = ansible_playbook.eomer-kubernetes-3-of-5.ansible_playbook_stderr
+  description = "Standard error from the Ansible playbook execution."
+}
 # eowyn enters fellowship:install — dependent on 1 prior incantations
 resource "ansible_playbook" "eowyn-kubernetes-1-of-5" {
   # dependency info
@@ -280,6 +315,41 @@ output "ansible_eowyn-kubernetes-2-of-5-stdout" {
 output "ansible_eowyn-kubernetes-2-of-5-stderr" {
   depends_on = [ ansible_playbook.eowyn-kubernetes-2-of-5 ]
   value = ansible_playbook.eowyn-kubernetes-2-of-5.ansible_playbook_stderr
+  description = "Standard error from the Ansible playbook execution."
+}
+# eowyn enters fellowship:configure — dependent on 1 prior incantations
+resource "ansible_playbook" "eowyn-kubernetes-3-of-5" {
+  # dependency info
+  depends_on = [
+    ansible_playbook.eowyn-kubernetes-2-of-5  
+  ]
+  # inventory info
+  name       = "eowyn"
+  groups     = ["kubernetes", "nodes"]
+  # playbook info
+  playbook   = "${path.module}/playbooks/kubernetes_cluster.yaml"
+  tags       = ["fellowship:configure"]
+  
+  var_files  = [
+    "${path.module}/inventory/group_vars/all.yml",
+    "${path.module}/inventory/group_vars/dev.yml",
+    "${path.module}/inventory/host_vars/eowyn.yml"
+  ]
+  check_mode = false
+  diff_mode  = false
+  replayable = false
+  verbosity  = 1
+}
+
+output "ansible_eowyn-kubernetes-3-of-5-stdout" {
+  depends_on = [ ansible_playbook.eowyn-kubernetes-3-of-5 ]
+  value = ansible_playbook.eowyn-kubernetes-3-of-5.ansible_playbook_stdout
+  description = "Standard output from the Ansible playbook execution."
+}
+
+output "ansible_eowyn-kubernetes-3-of-5-stderr" {
+  depends_on = [ ansible_playbook.eowyn-kubernetes-3-of-5 ]
+  value = ansible_playbook.eowyn-kubernetes-3-of-5.ansible_playbook_stderr
   description = "Standard error from the Ansible playbook execution."
 }
 # faramir enters vault:install — dependent on 1 prior incantations

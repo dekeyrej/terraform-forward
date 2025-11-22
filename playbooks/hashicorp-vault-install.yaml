@@ -9,14 +9,6 @@
         delay: 5     # Initial delay before polling
         sleep: 5      # Time between retries
 
-# - name: dump hostvars
-#   hosts: all
-#   gather_facts: true
-#   tasks:
-#     - name: dump hostvars
-#       ansible.builtin.debug:
-#         var: hostvars[inventory_hostname]
-
 - name: Setup Vault
   hosts: vaults
   tags: vault:install

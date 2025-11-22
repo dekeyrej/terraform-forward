@@ -5,21 +5,23 @@ import hcl2
 debug = False
 
 class ansible_playbook_resource_builder:
-    def __init__(self, local_path = 'locals.tf'):
-        self.local_path = local_path
+    def __init__(self, local_files = ['locals.tf', 'locals_vis.tf', 'locals_playbooks.tf', 'locals_images.tf', 'locals_dependencies.tf']):
+        self.local_files = local_files
         self.tflocals = self.load_locals()
         self.tranche = self.tflocals['tranche']
         self.template = self.create_template()
     
     def load_locals(self):
         # read the locals.tf file and extract the relevant section
-        try:
-            with open(self.local_path, 'r') as file:
-                tflocals = hcl2.load(file)['locals'][0]
-        except FileNotFoundError:
-            print("Error: 'config.hcl' not found. Please create the file or provide the correct path.")
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        tflocals = {}
+        for local_file in self.local_files:
+            try:
+                with open(local_file, 'r') as file:
+                    tflocals |= hcl2.load(file)['locals'][0]
+            except FileNotFoundError:
+                print("Error: 'config.hcl' not found. Please create the file or provide the correct path.")
+            except Exception as e:
+                print(f"An error occurred: {e}")
         return tflocals
     
     def create_template(self, template_path = 'templates/ansible_playbook.tf.j2'):
@@ -59,34 +61,43 @@ class ansible_playbook_resource_builder:
         return context
     
     def render_template(self, context):
-        # render the template with the provided context
         rendered_template = self.template.render(context)
+        print(f"Rendered template for {context['playbook_name']}")
         return rendered_template
+    
+    def build_playbooks(self):
+        playbooks = []
+        for host in self.tflocals['vis']:
+            if len(self.tflocals['vis'][host]['host_tags']) > 0:
+                for tag in self.tflocals['vis'][host]['host_tags']:
+                    context = self.build_playbook_context(host, tag)
+                    rendered_template = self.render_template(context)
+                    playbooks.append(rendered_template)
+            else:
+                context = self.build_playbook_context(host)
+                rendered_template = self.render_template(context)
+                playbooks.append(rendered_template)
+        return playbooks
 
 if __name__ == "__main__":
     builder = ansible_playbook_resource_builder()
-    for host in builder.tflocals['vis']:
-        # print(f"Generating Ansible playbook(s) for host: {host}")
-        if len(builder.tflocals['vis'][host]['host_tags']) > 0:
-            for tag in builder.tflocals['vis'][host]['host_tags']:
-                context = builder.build_playbook_context(host, tag)
-                if debug:
-                    print(json.dumps(context, indent=2))
-                else:
-                    rendered_template = builder.render_template(context)
-                    print(rendered_template)
-                    # with open(f"modules/playbooks/{context['playbook_name']}.tf", 'w') as f:
-                    #     rendered_template = builder.render_template(context)
-                    #     f.write(rendered_template)
-                    # print(f"Generated Ansible playbook for host: {host} with tag: {tag}")
-        else:
-            context = builder.build_playbook_context(host)
-            if debug:
-                print(json.dumps(context, indent=2))
-            else:
-                rendered_template = builder.render_template(context)
-                print(rendered_template)
-                # with open(f"modules/playbooks/{context['playbook_name']}.tf", 'w') as f:
-                #     rendered_template = builder.render_template(context)
-                #     f.write(rendered_template)
-                # print(f"Generated Ansible playbook for host: {host} without tags")
+    playbooks = builder.build_playbooks()
+    with open('ansible_playbooks.tf', 'w') as file:
+        file.write('\n'.join(playbooks))
+    print("Ansible playbooks have been generated and written to 'ansible_playbooks.tf'.")
+    # for host in builder.tflocals['vis']:
+    #     if len(builder.tflocals['vis'][host]['host_tags']) > 0:
+    #         for tag in builder.tflocals['vis'][host]['host_tags']:
+    #             context = builder.build_playbook_context(host, tag)
+    #             if debug:
+    #                 print(json.dumps(context, indent=2))
+    #             else:
+    #                 rendered_template = builder.render_template(context)
+    #                 print(rendered_template)
+    #     else:
+    #         context = builder.build_playbook_context(host)
+    #         if debug:
+    #             print(json.dumps(context, indent=2))
+    #         else:
+    #             rendered_template = builder.render_template(context)
+    #             print(rendered_template)
